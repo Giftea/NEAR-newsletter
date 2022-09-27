@@ -1,0 +1,3 @@
+DEFINE_NEAR_METHOD(get_user)
+DEFINE_NEAR_METHOD(register_user)
+DEFINE_NEAR_METHOD(restoreOwners)
