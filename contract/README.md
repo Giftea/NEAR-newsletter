@@ -1,22 +1,39 @@
-# Hello NEAR Contract
+# NEAR Newsletter
 
-The smart contract exposes two methods to enable storing and retrieving a greeting in the NEAR network.
+The smart contract currently has two methods: register_user &  get_user
 
 ```ts
 @NearBindgen({})
-class HelloNear {
-  greeting: string = "Hello";
+class NewsletterContract {
+  userAccounts: UnorderedMap = new UnorderedMap("user-accounts"); // create collection for user account
 
-  @view // This method is read-only and can be called for free
-  get_greeting(): string {
-    return this.greeting;
+  // - `call` is used to declare that a function is a near-call func | a call func is a function that can modify the data on the blockchain
+  @call
+  register_user({ userAccount }: { userAccount: UserAccount }) {
+    // This func takes a user's details and creates an account
+
+    let user = this.userAccounts.get(userAccount.id); // retrieve user using userId and check if user with that ID exists
+
+    if (user !== null) {
+      // If user already exists, throw an error
+      throw new Error(`User with ${userAccount.id} ID already exists`);
+    }
+    this.userAccounts.set(userAccount.id, new UserAccount(userAccount)); // create a new user and add to collection
+
+    return "Successfully Created User account";
   }
 
-  @call // This method changes the state, for which it cost gas
-  set_greeting({ greeting }: { greeting: string }): void {
-    // Record a log permanently to the blockchain!
-    near.log(`Saving greeting ${greeting}`);
-    this.greeting = greeting;
+  // - `view` is used to declare that a function is a near-view func | a view func only read data from the blockchain without any modification
+  @view
+  get_user({ userId }: { userId: string }) {
+    // This func takes in a user Id and fetches the user with corresponding ID
+    let user = this.userAccounts.get(userId); // fetch user
+
+    if (user === null) {
+      // if user with provided ID doesn't exist, return null
+      return [];
+    }
+    return user;
   }
 }
 ```
@@ -46,30 +63,22 @@ cat ./neardev/dev-account
 
 <br />
 
-## 2. Retrieve the Greeting
-
-`get_greeting` is a read-only method (aka `view` method).
-
-`View` methods can be called for **free** by anyone, even people **without a NEAR account**!
-
-```bash
-# Use near-cli to get the greeting
-near view <dev-account> get_greeting
-```
-
-<br />
-
-## 3. Store a New Greeting
-`set_greeting` changes the contract's state, for which it is a `call` method.
+## 2. Register a new User
+`register_user` changes the contract's state, for which it is a `call` method.
+This function creates a new User.
 
 `Call` methods can only be invoked using a NEAR account, since the account needs to pay GAS for the transaction.
 
 ```bash
 # Use near-cli to set a new greeting
-near call <dev-account> set_greeting '{"greeting":"howdy"}' --accountId <dev-account>
+near call <dev-account> register_user '{"userAccount": {"id": "6098", "userEmail": "tea1234765@gmail.com"}}' --accountId <dev-account>
+```
+Example:
+```
+near call dev-1664284823466-35028972601885 register_user '{"userAccount": {"id": "6098", "userEmail": "tea1234@gmail.com"}}' --accountId=giftea.testnet
 ```
 
-**Tip:** If you would like to call `set_greeting` using your own account, first login into NEAR using:
+**Tip:** If you would like to call `register_user` using your own account, first login into NEAR using:
 
 ```bash
 # Use near-cli to login your NEAR account
@@ -77,3 +86,21 @@ near login
 ```
 
 and then use the logged account to sign the transaction: `--accountId <your-account>`.
+
+<br />
+
+## 3. Retrieve User
+
+`get_user` is a read-only method (aka `view` method).
+
+`View` methods can be called for **free** by anyone, even people **without a NEAR account**!
+
+```bash
+# Use near-cli to get the greeting
+near view <dev-account> get_user
+```
+
+Example:
+```
+near view dev-1664284823466-35028972601885 get_user '{"userId": "6098"}'
+```
